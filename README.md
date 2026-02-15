@@ -2,6 +2,28 @@
 
 A production-ready RAG (Retrieval-Augmented Generation) chatbot that answers technical questions about the Siemens S7-1200 Programmable Logic Controller using the official 864-page system manual.
 
+## Why This Exists
+
+The Siemens S7-1200 is one of the most widely deployed PLCs in industrial automation, found across manufacturing floors, water treatment plants, food & beverage processing lines, packaging systems, and building management installations worldwide. Plant operators, maintenance technicians, and control engineers routinely need to reference the 864-page system manual for tasks like:
+
+- **Commissioning new production lines** — wiring I/O modules, configuring PROFINET networks, setting up CPU parameters
+- **Troubleshooting downtime** — diagnosing faults, interpreting LED status codes, checking module compatibility during a shift
+- **Programming automation logic** — writing SCL/LAD/FBD code for PID loops, motion control, high-speed counters, and analog signal processing
+- **Safety compliance** — verifying wiring clearances, grounding requirements, and safety-rated configurations before plant audits
+- **Training new operators** — onboarding technicians who need quick, cited answers without reading hundreds of pages
+
+Searching through a dense PDF on the plant floor — often on a tablet next to a control cabinet — is slow and error-prone. This chatbot gives instant, cited answers grounded in the official documentation, so engineers can stay focused on keeping the line running.
+
+### Target Users
+
+| Role | How They Use It |
+|------|----------------|
+| **Maintenance Technician** | Quick fault diagnosis during unplanned downtime — "What does LED error code SF mean on CPU 1214C?" |
+| **Control Engineer** | PLC programming reference — "Show me SCL code for a PID temperature control loop" |
+| **Plant Operator** | Operational questions — "What is the maximum cable length for PROFINET connections?" |
+| **Commissioning Engineer** | Setup and configuration — "How do I configure analog input AI_0 for 4-20mA?" |
+| **EHS / Safety Officer** | Compliance checks — "What are the safety precautions for wiring 24V DC power supply?" |
+
 ## Architecture
 
 ```
@@ -81,7 +103,8 @@ siemens_S7-1200_RAG/
 ├── data/
 │   ├── raw/                    # Place PDF here
 │   ├── processed/              # Optional extracted data
-│   └── vectorstore/            # Qdrant persistence
+│   ├── vectorstore/            # Qdrant persistence
+│   └── feedback.db             # User feedback (auto-created)
 ├── src/
 │   ├── config.py               # Pydantic settings
 │   ├── ingestion/
@@ -90,6 +113,11 @@ siemens_S7-1200_RAG/
 │   │   └── vector_store.py     # Qdrant operations
 │   ├── chains/
 │   │   └── rag_chain.py        # LangChain RAG pipeline
+│   ├── monitoring/
+│   │   ├── metrics.py          # Prometheus metric definitions
+│   │   ├── feedback.py         # SQLite feedback storage
+│   │   ├── rag_quality.py      # Retrieval quality tracking
+│   │   └── tracing.py          # Optional LangSmith integration
 │   └── ui/
 │       └── gradio_app.py       # Gradio interface
 ├── scripts/
@@ -97,7 +125,9 @@ siemens_S7-1200_RAG/
 │   └── start.sh                # Automated startup
 ├── docker/
 │   ├── Dockerfile
-│   └── docker-compose.yml
+│   ├── docker-compose.yml
+│   ├── prometheus/             # Prometheus scrape config
+│   └── grafana/                # Grafana datasource provisioning
 ├── requirements.txt
 ├── .env.example
 └── README.md
@@ -128,6 +158,37 @@ See [.env.example](.env.example) for all options.
 - **Conversation memory**: Context-aware follow-up questions (last 10 exchanges)
 - **Adjustable settings**: Temperature and top-K controls in the UI
 - **Source transparency**: Full source display panel with scores and metadata
+- **User feedback**: Thumbs up/down and flag buttons, stored in SQLite for review
+- **Prometheus metrics**: Request latency, retrieval quality scores, LLM error rates
+- **Grafana dashboards**: Pre-configured with Prometheus datasource for visualization
+- **RAG quality tracking**: Retrieval relevance scoring and citation accuracy checking
+- **Optional LangSmith tracing**: Full LangChain call tracing for debugging
+
+## Monitoring
+
+The chatbot includes a 5-layer monitoring stack for production observability:
+
+| Layer | What It Tracks | Tool |
+|-------|---------------|------|
+| RAG Quality | Retrieval relevance scores, citation accuracy, low-quality query detection | Built-in (`src/monitoring/rag_quality.py`) |
+| LLM Inference | Generation latency, tokens/sec, error classification | Prometheus metrics |
+| Application | Request count, P50/P95/P99 response times, error rates | Prometheus + Grafana |
+| Infrastructure | Container CPU/memory, Qdrant health, Ollama status | cAdvisor + Prometheus |
+| User Feedback | Thumbs up/down, flagged responses | SQLite (`data/feedback.db`) |
+
+Start the full monitoring stack:
+
+```bash
+docker compose -f docker/docker-compose.yml up -d
+```
+
+| Service | URL | Purpose |
+|---------|-----|---------|
+| Chatbot | http://localhost:7860 | Main application |
+| Prometheus | http://localhost:9091 | Metrics collection |
+| Grafana | http://localhost:3000 | Dashboards (admin/admin) |
+| cAdvisor | http://localhost:8080 | Container metrics |
+| App Metrics | http://localhost:9090/metrics | Raw Prometheus endpoint |
 
 ## Example Queries
 
