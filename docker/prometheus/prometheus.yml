@@ -1,0 +1,20 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Application metrics from the Gradio app
+  - job_name: "s7rag-app"
+    static_configs:
+      - targets: ["gradio-app:9090"]
+
+  # Qdrant native metrics (already exposed)
+  - job_name: "qdrant"
+    static_configs:
+      - targets: ["qdrant:6333"]
+    metrics_path: "/metrics"
+
+  # cAdvisor container metrics
+  - job_name: "cadvisor"
+    static_configs:
+      - targets: ["cadvisor:8080"]

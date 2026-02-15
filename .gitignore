@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Environment
+.env
+
+# Data (large files)
+data/raw/*.pdf
+data/vectorstore/
+data/processed/
+data/feedback.db
+data/ingestion.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+NUL
+Thumbs.db
+.DS_Store
+
+# Claude
+.claude/
