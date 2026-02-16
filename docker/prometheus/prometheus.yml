@@ -6,7 +6,7 @@ scrape_configs:
   # Application metrics from the Gradio app
   - job_name: "s7rag-app"
     static_configs:
-      - targets: ["gradio-app:9090"]
+      - targets: ["host.docker.internal:9090"]
 
   # Qdrant native metrics (already exposed)
   - job_name: "qdrant"
